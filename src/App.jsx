@@ -138,6 +138,7 @@ function Header() {
   /* EFFECT 7+8: scroll state + active section */
   const [scrolled, setScrolled] = useState(false);
   const [activeId, setActiveId] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
@@ -181,12 +182,23 @@ function Header() {
             ЛОР-врач, ЛОР-хирург, высшая категория
           </span>
         </div>
-        <nav className="header__nav">
+        <button
+          type="button"
+          className={`header__burger ${isMenuOpen ? "header__burger--open" : ""}`}
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          aria-label="Открыть меню"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <nav className={`header__nav ${isMenuOpen ? "header__nav--open" : ""}`}>
           <a
             href="#problems"
             className={`header__nav-link ${
               activeId === "problems" ? "header__nav-link--active" : ""
             }`}
+            onClick={() => setIsMenuOpen(false)}
           >
             С чем помогаю
           </a>
@@ -195,6 +207,7 @@ function Header() {
             className={`header__nav-link ${
               activeId === "about" ? "header__nav-link--active" : ""
             }`}
+            onClick={() => setIsMenuOpen(false)}
           >
             О докторе
           </a>
@@ -203,6 +216,7 @@ function Header() {
             className={`header__nav-link ${
               activeId === "surgery" ? "header__nav-link--active" : ""
             }`}
+            onClick={() => setIsMenuOpen(false)}
           >
             Операции
           </a>
@@ -211,6 +225,7 @@ function Header() {
             className={`header__nav-link ${
               activeId === "reviews" ? "header__nav-link--active" : ""
             }`}
+            onClick={() => setIsMenuOpen(false)}
           >
             Отзывы
           </a>
@@ -219,6 +234,7 @@ function Header() {
             className={`header__nav-link ${
               activeId === "contacts" ? "header__nav-link--active" : ""
             }`}
+            onClick={() => setIsMenuOpen(false)}
           >
             Контакты
           </a>

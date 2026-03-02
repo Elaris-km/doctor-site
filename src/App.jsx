@@ -1,5 +1,4 @@
 import {
-  FiMail,
   FiMapPin,
   FiCheckCircle,
   FiArrowRight,
@@ -18,12 +17,13 @@ import {
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import doctorPhoto from "./assets/doctor.jpg";
+import surgeryEarEndoscopePhoto from "./assets/surgery-ear-endoscope.jpg";
+import earAnatomyDiagram from "./assets/ear-anatomy-original.png";
+import noseAnatomyDiagram from "./assets/nose-anatomy-original.png";
+import throatAnatomyDiagram from "./assets/throat-anatomy-original.png";
 import earIcon from "./assets/uho.png";
 import noseIcon from "./assets/nos.png";
 import throatIcon from "./assets/gorlo.png";
-import kidsIcon from "./assets/deti.png";
-import chronicIcon from "./assets/hron.png";
-import rareIcon from "./assets/sluchai.png";
 import { reviews } from "./data/reviews";
 
 /* ==================== КАСТОМНЫЙ КУРСОР ==================== */
@@ -107,16 +107,585 @@ function Reveal({ children, className = "", delay = 0 }) {
   );
 }
 
+function getCurrentSymptomPage() {
+  const symptom = new URLSearchParams(window.location.search).get("symptom");
+  if (symptom === "ear" || symptom === "nose" || symptom === "throat") {
+    return symptom;
+  }
+  return null;
+}
+
+function useSymptomPage() {
+  const [symptomPage, setSymptomPage] = useState(getCurrentSymptomPage);
+
+  useEffect(() => {
+    const onPopState = () => setSymptomPage(getCurrentSymptomPage());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    if (!symptomPage) {
+      return;
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [symptomPage]);
+
+  const navigateToSymptom = (nextPage) => {
+    const url = new URL(window.location.href);
+    if (nextPage) {
+      url.searchParams.set("symptom", nextPage);
+      url.hash = "";
+    } else {
+      url.searchParams.delete("symptom");
+      url.hash = "problems";
+    }
+    window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    setSymptomPage(nextPage || null);
+
+    if (nextPage) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const problemsSection = document.getElementById("problems");
+        if (problemsSection) {
+          problemsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  };
+
+  return { symptomPage, navigateToSymptom };
+}
+
+const earRegions = [
+  {
+    id: "outer",
+    title: "Наружное ухо",
+    description:
+      "Ушная раковина и наружный слуховой проход проводят звук к барабанной перепонке.",
+    x: 22,
+    y: 58,
+  },
+  {
+    id: "drum",
+    title: "Барабанная перепонка",
+    description:
+      "Тонкая мембрана, которая преобразует звуковые колебания в механические.",
+    x: 58,
+    y: 58,
+  },
+  {
+    id: "ossicles",
+    title: 'Слуховые косточки ("молоточек–наковальня–стремечко")',
+    description:
+      "Система косточек среднего уха, усиливающая звук и передающая его во внутреннее ухо.",
+    x: 64,
+    y: 50,
+  },
+  {
+    id: "vestibular",
+    title: "Полукружные каналы",
+    description:
+      "Часть вестибулярного аппарата, отвечающая за равновесие и координацию.",
+    x: 72,
+    y: 39,
+  },
+  {
+    id: "cochlea",
+    title: "Улитка",
+    description:
+      "Главный отдел внутреннего уха, где звук превращается в нервный импульс.",
+    x: 74,
+    y: 62,
+  },
+  {
+    id: "nerve",
+    title: "Слуховой нерв",
+    description:
+      "Передаёт сигналы от улитки в головной мозг для распознавания звуков.",
+    x: 82,
+    y: 45,
+  },
+];
+
+const noseRegions = [
+  {
+    id: "vestibule",
+    title: "Преддверие носа",
+    description:
+      "Начальный отдел носовой полости, где воздух очищается от крупных частиц.",
+    x: 34,
+    y: 66,
+  },
+  {
+    id: "septum",
+    title: "Носовая перегородка",
+    description:
+      "Разделяет полость носа на правую и левую половины и влияет на качество носового дыхания.",
+    x: 49,
+    y: 57,
+  },
+  {
+    id: "inferior",
+    title: "Нижняя носовая раковина",
+    description:
+      "Регулирует поток воздуха, участвует в увлажнении и согревании вдыхаемого воздуха.",
+    x: 57,
+    y: 58,
+  },
+  {
+    id: "middle",
+    title: "Средняя носовая раковина",
+    description:
+      "Важная зона дренажа околоносовых пазух, часто участвует в воспалительных процессах.",
+    x: 57,
+    y: 49,
+  },
+  {
+    id: "frontal",
+    title: "Лобная пазуха",
+    description:
+      "Одна из околоносовых пазух, расположена в лобной кости и участвует в резонансе голоса.",
+    x: 51,
+    y: 15,
+  },
+  {
+    id: "ethmoid",
+    title: "Решетчатый лабиринт",
+    description:
+      "Группа ячеек между полостью носа и орбитой, относится к околоносовым пазухам.",
+    x: 54,
+    y: 41,
+  },
+  {
+    id: "sphenoid",
+    title: "Клиновидная пазуха",
+    description:
+      "Глубокая околоносовая пазуха в задних отделах полости носа.",
+    x: 72,
+    y: 46,
+  },
+  {
+    id: "nasopharynx",
+    title: "Носоглотка",
+    description:
+      "Переходная зона между полостью носа и глоткой, важна для дыхания и вентиляции.",
+    x: 72,
+    y: 72,
+  },
+];
+
+const throatRegions = [
+  {
+    id: "nasopharynx",
+    title: "Носоглотка",
+    description:
+      "Верхний отдел глотки, соединяющий полость носа с нижележащими отделами дыхательных путей.",
+    x: 52,
+    y: 36,
+  },
+  {
+    id: "oropharynx",
+    title: "Ротоглотка",
+    description:
+      "Средний отдел глотки за полостью рта, участвует в акте глотания и проведении воздуха.",
+    x: 50,
+    y: 54,
+  },
+  {
+    id: "laryngopharynx",
+    title: "Гортаноглотка",
+    description:
+      "Нижний отдел глотки, переходящий в пищевод; важен для координации дыхания и глотания.",
+    x: 55,
+    y: 70,
+  },
+  {
+    id: "epiglottis",
+    title: "Надгортанник",
+    description:
+      "Эластичный хрящ, закрывающий вход в гортань при глотании и защищающий дыхательные пути.",
+    x: 49,
+    y: 66,
+  },
+  {
+    id: "larynx",
+    title: "Гортань",
+    description:
+      "Отдел дыхательных путей, где расположены голосовые структуры и формируется голос.",
+    x: 61,
+    y: 79,
+  },
+  {
+    id: "vocal-folds",
+    title: "Голосовые складки",
+    description:
+      "Парные структуры в гортани, обеспечивающие голосообразование и защиту нижних дыхательных путей.",
+    x: 59,
+    y: 75,
+  },
+  {
+    id: "trachea",
+    title: "Трахея",
+    description:
+      "Воздухоносная трубка, продолжающая гортань и проводящая воздух к бронхам.",
+    x: 64,
+    y: 92,
+  },
+];
+
+const noseFacts = [
+  {
+    title: "Нос фильтрует до 95% частиц из воздуха",
+    text: "Слизистая и реснички задерживают пыль, бактерии и аллергены ещё до того, как воздух попадёт в лёгкие.",
+  },
+  {
+    title: "За сутки через нос проходит до 12–15 тысяч литров воздуха",
+    text: "Поэтому даже небольшое нарушение носового дыхания быстро ощущается всем организмом.",
+  },
+  {
+    title: "Пазухи носа облегчают вес черепа",
+    text: "Если бы они были заполнены костью, голова человека была бы заметно тяжелее.",
+  },
+  {
+    title: "Нос согревает воздух почти до температуры тела",
+    text: "Даже если на улице мороз, к лёгким воздух поступает уже тёплым и увлажнённым.",
+  },
+  {
+    title: "Обоняние напрямую связано с эмоциями и памятью",
+    text: "Запахи обрабатываются в тех же структурах мозга, что и воспоминания, поэтому запахи так ярко вызывают ассоциации.",
+  },
+];
+
+const earFacts = [
+  {
+    title: "Ухо различает колебания меньше диаметра атома",
+    text: "Барабанная перепонка реагирует на микродвижения воздуха, которые практически невозможно измерить бытовыми приборами.",
+  },
+  {
+    title: "Внутреннее ухо отвечает не только за слух, но и за равновесие",
+    text: "Полукружные каналы постоянно сообщают мозгу положение головы в пространстве.",
+  },
+  {
+    title: "Самая маленькая кость тела находится в ухе",
+    text: "Стремечко имеет размер всего около 3–4 мм.",
+  },
+  {
+    title: "Ухо работает даже во сне",
+    text: "Мозг продолжает обрабатывать звуки, поэтому мы можем проснуться от важного сигнала.",
+  },
+  {
+    title: "Серная пробка — это не «грязь», а защитный механизм",
+    text: "Ушная сера защищает слуховой проход от бактерий и пересыхания.",
+  },
+];
+
+const throatFacts = [
+  {
+    title: "Горло — это перекрёст дыхательной и пищеварительной систем",
+    text: "Через глотку проходит и воздух, и пища, поэтому механизм глотания такой сложный и точный.",
+  },
+  {
+    title: "Надгортанник работает как автоматический клапан",
+    text: "Во время глотания он закрывает вход в дыхательные пути за доли секунды.",
+  },
+  {
+    title: "Голосовые складки совершают сотни колебаний в секунду",
+    text: "При разговоре они могут вибрировать примерно от 100 до 1000 раз в секунду.",
+  },
+  {
+    title: "Слизистая горла — часть иммунной защиты",
+    text: "Миндалины первыми встречают инфекцию, попадающую через рот и нос.",
+  },
+  {
+    title: "Обезвоживание быстро влияет на голос",
+    text: "Даже лёгкий дефицит жидкости делает голосовые складки менее эластичными.",
+  },
+];
+
+function SymptomPageShell({ title, eyebrow, onBack, children }) {
+  return (
+    <div className="page">
+      <div className="page-shell">
+        <section className="section symptom-page">
+          <div className="container">
+            <button
+              type="button"
+              className="symptom-page__back"
+              onClick={onBack}
+            >
+              ← Вернуться к симптомам
+            </button>
+            <div className="section__header">
+              <span className="section__eyebrow">{eyebrow}</span>
+              <h2>{title}</h2>
+            </div>
+            {children}
+          </div>
+        </section>
+      </div>
+      <CustomCursor />
+    </div>
+  );
+}
+
+function SymptomFacts({ title, facts }) {
+  return (
+    <section className="symptom-facts">
+      <h3 className="symptom-facts__title">{title}</h3>
+      <div className="symptom-facts__items">
+        {facts.map((fact, index) => (
+          <article className="symptom-facts__item" key={fact.title}>
+            <h4 className="symptom-facts__item-title">
+              {index + 1}. {fact.title}
+            </h4>
+            <p className="symptom-facts__item-text">{fact.text}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SymptomInteractiveMap({ imageSrc, imageAlt, regions }) {
+  const [activeRegionId, setActiveRegionId] = useState(regions[0]?.id || "");
+  const imageRef = useRef(null);
+  const [lockedDetailsHeight, setLockedDetailsHeight] = useState(null);
+  const detailsDensityClass =
+    regions.length >= 8
+      ? "ear-map__details--dense"
+      : regions.length >= 7
+      ? "ear-map__details--compact"
+      : "";
+
+  useEffect(() => {
+    const updateHeights = () => {
+      const node = imageRef.current;
+      if (!node) {
+        return;
+      }
+
+      if (window.innerWidth <= 1024) {
+        setLockedDetailsHeight(null);
+        return;
+      }
+
+      setLockedDetailsHeight(node.getBoundingClientRect().height);
+    };
+
+    const imageNode = imageRef.current;
+    if (!imageNode) {
+      return;
+    }
+
+    updateHeights();
+
+    const observer = new ResizeObserver(updateHeights);
+    observer.observe(imageNode);
+
+    if (!imageNode.complete) {
+      imageNode.addEventListener("load", updateHeights);
+    }
+
+    window.addEventListener("resize", updateHeights);
+
+    return () => {
+      observer.disconnect();
+      imageNode.removeEventListener("load", updateHeights);
+      window.removeEventListener("resize", updateHeights);
+    };
+  }, [imageSrc]);
+
+  const detailsStyle = lockedDetailsHeight
+    ? {
+        height: `${lockedDetailsHeight}px`,
+        maxHeight: `${lockedDetailsHeight}px`,
+      }
+    : undefined;
+
+  return (
+    <div className="ear-map">
+      <div className="ear-map__left">
+        <div className="ear-map__figure">
+          <img
+            ref={imageRef}
+            src={imageSrc}
+            alt={imageAlt}
+            className="ear-map__image"
+          />
+          {regions.map((region) => (
+            <button
+              key={region.id}
+              type="button"
+              className={`ear-map__hotspot ${
+                activeRegionId === region.id ? "ear-map__hotspot--active" : ""
+              }`}
+              style={{ left: `${region.x}%`, top: `${region.y}%` }}
+              onMouseEnter={() => setActiveRegionId(region.id)}
+              onFocus={() => setActiveRegionId(region.id)}
+              onClick={() => setActiveRegionId(region.id)}
+              aria-label={region.title}
+            >
+              <span className="ear-map__hotspot-dot" />
+              <span className="ear-map__hotspot-label">{region.title}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className={`ear-map__details ${detailsDensityClass}`}
+        style={detailsStyle}
+      >
+        {regions.map((region) => (
+          <button
+            key={region.id}
+            type="button"
+            className={`ear-map__detail ${
+              activeRegionId === region.id ? "ear-map__detail--active" : ""
+            }`}
+            onMouseEnter={() => setActiveRegionId(region.id)}
+            onFocus={() => setActiveRegionId(region.id)}
+            onClick={() => setActiveRegionId(region.id)}
+          >
+            <span className="ear-map__detail-title">{region.title}</span>
+            <span className="ear-map__detail-text">{region.description}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EarSymptomsPage({ onBack }) {
+  return (
+    <SymptomPageShell
+      title="Ухо: строение и ключевые зоны"
+      eyebrow={
+        <>
+          <FiVolume2 /> Ухо
+        </>
+      }
+      onBack={onBack}
+    >
+      <p className="section__subtitle">
+        Наведите курсор на выделенную область изображения — соответствующая зона
+        и пояснение ниже будут подсвечены.
+      </p>
+      <SymptomInteractiveMap
+        imageSrc={earAnatomyDiagram}
+        imageAlt="Схема строения уха"
+        regions={earRegions}
+      />
+      <SymptomFacts title="👂 Интересные факты об ухе" facts={earFacts} />
+    </SymptomPageShell>
+  );
+}
+
+function NoseSymptomsPage({ onBack }) {
+  return (
+    <SymptomPageShell
+      title="Нос: строение и ключевые зоны"
+      eyebrow={
+        <>
+          <FiWind /> Нос
+        </>
+      }
+      onBack={onBack}
+    >
+      <p className="section__subtitle">
+        Наведите курсор на выделенную область изображения — соответствующая зона
+        и пояснение справа будут подсвечены.
+      </p>
+      <SymptomInteractiveMap
+        imageSrc={noseAnatomyDiagram}
+        imageAlt="Схема строения носа"
+        regions={noseRegions}
+      />
+      <SymptomFacts title="👃 Интересные факты о носе" facts={noseFacts} />
+    </SymptomPageShell>
+  );
+}
+
+function ThroatSymptomsPage({ onBack }) {
+  return (
+    <SymptomPageShell
+      title="Горло: строение и ключевые зоны"
+      eyebrow={
+        <>
+          <FiMessageCircle /> Горло
+        </>
+      }
+      onBack={onBack}
+    >
+      <p className="section__subtitle">
+        Наведите курсор на выделенную область изображения — соответствующая зона
+        и пояснение справа будут подсвечены.
+      </p>
+      <SymptomInteractiveMap
+        imageSrc={throatAnatomyDiagram}
+        imageAlt="Схема строения горла"
+        regions={throatRegions}
+      />
+      <SymptomFacts title="👄 Интересные факты о горле" facts={throatFacts} />
+    </SymptomPageShell>
+  );
+}
+
+function SymptomPlaceholderPage({ onBack, symptomTitle }) {
+  return (
+    <SymptomPageShell
+      title={`${symptomTitle}: подробный разбор`}
+      eyebrow={
+        <>
+          <FiCheckCircle /> {symptomTitle}
+        </>
+      }
+      onBack={onBack}
+    >
+      <p className="section__subtitle">
+        Раздел уже подключён как отдельная страница. Пришлите контент для этого
+        направления, и я сразу наполню его структурированными блоками.
+      </p>
+    </SymptomPageShell>
+  );
+}
+
 /* ==================== APP ==================== */
 
 function App() {
+  const { symptomPage, navigateToSymptom } = useSymptomPage();
+
+  if (symptomPage === "ear") {
+    return <EarSymptomsPage onBack={() => navigateToSymptom(null)} />;
+  }
+
+  if (symptomPage === "nose") {
+    return <NoseSymptomsPage onBack={() => navigateToSymptom(null)} />;
+  }
+
+  if (symptomPage === "throat") {
+    return <ThroatSymptomsPage onBack={() => navigateToSymptom(null)} />;
+  }
+
   return (
     <div className="page">
       <div className="page-shell">
         <Header />
         <main>
           <Hero />
-          <Problems />
+          <Problems onOpenSymptom={navigateToSymptom} />
           <AboutDoctor />
           <Surgery />
           <Process />
@@ -302,28 +871,23 @@ function Hero() {
         >
           <div className="hero-card__inner">
             <Reveal delay={40} className="hero-card__col hero-card__col--text">
-              <div className="hero-card__label">
-                Кемерово • ЛОР-врач и ЛОР-хирург
-              </div>
+              <div className="hero-card__label">Кемерово</div>
               <h1 className="hero-card__title">
                 Миличенков Максим Дмитриевич
               </h1>
               <p className="hero-card__subtitle">
-                Врач-оториноларинголог высшей категории, стаж 9 лет.
-                <br />
-                Приём взрослых и детей.
+                Врач оториноларинголог-хирург высшей категории, стаж работы 10
+                лет.
               </p>
               <ul className="hero-card__list">
+                <li>Диагностика и лечение ЛОР-заболеваний.</li>
                 <li>
-                  Диагностика и лечение острых и хронических ЛОР-заболеваний.
+                  Эндоскопические и микрохирургические операции на ЛОР-органах
+                  строго по показаниям.
                 </li>
                 <li>
-                  Эндоскопические и микрохирургические операции при
-                  показаниях.
-                </li>
-                <li>
-                  Понятное объяснение диагноза и плана лечения без лишних
-                  терминов.
+                  Понятное объяснение диагноза и плана лечения без лишней
+                  терминологии.
                 </li>
               </ul>
               <div className="hero-card__actions">
@@ -335,9 +899,8 @@ function Hero() {
                 </a>
               </div>
               <div className="hero-card__chips">
-                <span className="chip">Стаж 9 лет</span>
+                <span className="chip">Стаж 10 лет</span>
                 <span className="chip">Высшая категория</span>
-                <span className="chip">Приём взрослых и детей</span>
               </div>
             </Reveal>
 
@@ -369,7 +932,7 @@ function Hero() {
 
 /* ==================== PROBLEMS ==================== */
 
-function Problems() {
+function Problems({ onOpenSymptom }) {
   return (
     <section className="section" id="problems">
       <div className="container">
@@ -381,12 +944,13 @@ function Problems() {
             <h2>Симптомы, при которых стоит обратиться</h2>
           </div>
           <p className="section__subtitle">
-            Любой дискомфорт в области уха, горла или носа — повод показаться
-            специалисту. Ниже — самые частые ситуации.
+            Любые жалобы связанные с ухом, горлом, гортанью/голосом или носом —
+            повод показаться к специалисту. Ниже — самые частые ситуации.
           </p>
           <div className="grid grid--3">
             <ProblemCard
               title="Ухо"
+              onClick={() => onOpenSymptom("ear")}
               icon={
                 <img
                   src={earIcon}
@@ -395,11 +959,12 @@ function Problems() {
                 />
               }
             >
-              Боль, шум, заложенность, выделения, снижение слуха, частые отиты,
-              ощущение «воды в ухе», инородные тела.
+              Боль, шум/звон, заложенность, отделяемое, снижение слуха, частые
+              отиты, ощущение «воды в ухе», инородные тела.
             </ProblemCard>
             <ProblemCard
               title="Нос"
+              onClick={() => onOpenSymptom("nose")}
               icon={
                 <img
                   src={noseIcon}
@@ -408,11 +973,15 @@ function Problems() {
                 />
               }
             >
-              Постоянная заложенность, насморк, частые гаймориты, полипы и
-              кисты, искривление перегородки, снижение обоняния.
+              Постоянная заложенность, чувство затрудненного дыхания, сухость в
+              полости носа, частый (продолжительный) насморк, искривление
+              перегородки носа, головная (лицевая) боль, рецидивирующие
+              гаймориты, полипы и кисты околоносовых пазух, снижение обоняния,
+              носовые кровотечения.
             </ProblemCard>
             <ProblemCard
               title="Горло"
+              onClick={() => onOpenSymptom("throat")}
               icon={
                 <img
                   src={throatIcon}
@@ -421,47 +990,9 @@ function Problems() {
                 />
               }
             >
-              Частые ангины, пробки в миндалинах, боль и ком в горле,
-              охриплость голоса, затруднённое глотание.
-            </ProblemCard>
-            <ProblemCard
-              title="Симптомы у детей"
-              icon={
-                <img
-                  src={kidsIcon}
-                  alt="Симптомы у детей"
-                  style={{ width: 30, height: 30, objectFit: "contain" }}
-                />
-              }
-            >
-              Частые ОРВИ, аденоиды, храп, дыхание ртом, снижение слуха,
-              жалобы на боль в ухе или горле.
-            </ProblemCard>
-            <ProblemCard
-              title="Хронические состояния"
-              icon={
-                <img
-                  src={chronicIcon}
-                  alt="Хронические состояния"
-                  style={{ width: 30, height: 30, objectFit: "contain" }}
-                />
-              }
-            >
-              Хронический ринит, рецидивирующие синуситы и отиты, длительные
-              жалобы, несмотря на лечение.
-            </ProblemCard>
-            <ProblemCard
-              title="Неочевидные случаи"
-              icon={
-                <img
-                  src={rareIcon}
-                  alt="Неочевидные случаи"
-                  style={{ width: 30, height: 30, objectFit: "contain" }}
-                />
-              }
-            >
-              Головные боли и давление в области пазух, неприятный запах из
-              носа или рта, любые непонятные симптомы ЛОР-органов.
+              частые ангины, боль и чувство «кома» в горле, наличие
+              новообразований в горле/гортани, охриплость/осиплость голоса,
+              дискомфорт при глотание.
             </ProblemCard>
           </div>
         </Reveal>
@@ -470,9 +1001,17 @@ function Problems() {
   );
 }
 
-function ProblemCard({ title, children, icon }) {
+function ProblemCard({ title, children, icon, onClick }) {
+  const Element = onClick ? "button" : "div";
+
   return (
-    <div className="card card--hover card--soft card--problem">
+    <Element
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={`card card--hover card--soft card--problem ${
+        onClick ? "card--action" : ""
+      }`}
+    >
       <div className="card__header">
         <div className="card__icon-wrap">
           {icon || <FiCheckCircle className="card__icon" />}
@@ -480,7 +1019,7 @@ function ProblemCard({ title, children, icon }) {
         <h3 className="card__title">{title}</h3>
       </div>
       <p className="card__text">{children}</p>
-    </div>
+    </Element>
   );
 }
 
@@ -501,22 +1040,21 @@ function AboutDoctor() {
             <div>
               <p className="section__subtitle">
                 Я — <strong>Миличенков Максим Дмитриевич</strong>,
-                врач-оториноларинголог высшей категории, ЛОР-хирург. Работаю с
-                2016 года.
+                врач-оториноларинголог высшей квалификационной категории,
+                ЛОР-хирург.
               </p>
               <ul className="list">
-                <li>Стаж работы в оториноларингологии — 9 лет.</li>
+                <li>Стаж работы в оториноларингологии — 10 лет.</li>
                 <li>Высшая квалификационная категория.</li>
                 <li>
                   Приём в ГАУЗ «Кузбасский клинический госпиталь для ветеранов
                   войн».
                 </li>
-                <li>Принимаю взрослых и детей.</li>
               </ul>
               <blockquote className="about__quote">
                 На приёме важно без спешки разобраться в вашей ситуации,
-                объяснить диагноз понятным языком и предложить реалистичный план
-                лечения. Моя задача — не напугать, а дать опору и понятный план
+                объяснить диагноз понятным языком и предложить наиболее верный
+                план лечения. Моя задача — не напугать, а дать понятный план
                 действий.
               </blockquote>
             </div>
@@ -600,24 +1138,69 @@ function Surgery() {
             </span>
             <h2>Когда нужна операция</h2>
           </div>
-          <p className="section__subtitle">
-            Операция — не первый шаг, а продуманное решение. При показаниях я
-            провожу эндоскопические и микрохирургические вмешательства с
-            аккуратным отношением к анатомии и функциям.
-          </p>
+          <div className="surgery__intro">
+            <p className="section__subtitle surgery__subtitle">
+              Операция — не первый шаг, а продуманное решение.
+              <br />
+              У меня есть одно важное правило:
+              <br />
+              Хирургическое лечение показано только при соблюдении одного из
+              следующих условий:
+              <br />
+              1. Исчерпаны возможности адекватно проведённого консервативного
+              лечения, которое не привело к достижению клинически значимого
+              эффекта.
+              <br />
+              2. Имеются объективные данные (на основании актуальных клинических
+              рекомендаций и накопленного клинического опыта), свидетельствующие
+              о том, что консервативная тактика заведомо неэффективна или
+              сопряжена с риском прогрессирования заболевания и развития
+              осложнений.
+              <br />
+              <br />
+              При показаниях я провожу эндоскопические и микрохирургические
+              вмешательства с аккуратным отношением к анатомии и функциям
+              ЛОР-органов.
+            </p>
+            <div className="surgery__image-wrap">
+              <img
+                src={surgeryEarEndoscopePhoto}
+                alt="Эндоскопическое обследование уха"
+                className="surgery__image"
+                loading="lazy"
+              />
+            </div>
+          </div>
           <div className="grid grid--3">
             <Card title="Нос и пазухи">
-              Эндоскопические операции при полипах, кистах, хроническом
-              гайморите, искривлении перегородки. Цель — восстановить дыхание и
-              дренаж пазух.
+              Нос (все операции проводятся только под эндоскопическим
+              контролем): септопластика, синусотомия (удаление доброкачественных
+              новообразований, кист, полипов и остеом), пластика носовых
+              раковин, пластика перфорации перегородки носа, аденоидэктомия.
             </Card>
             <Card title="Ухо">
-              Тимпанопластика, санирующие и реконструктивно-восстановительные
-              операции при хроническом отите и снижении слуха.
+              Реконструктивно-восстановительная микрохирургия среднего уха
+              (тимпанопластика, стапедопластика, санирующие вмешательства),
+              удаление доброкачественных новообразований наружного и среднего
+              уха, шунтирование барабанной полости, пластика наружного слухового
+              прохода при атрезии.
             </Card>
             <Card title="Глотка и гортань">
-              Щадящие вмешательства при доброкачественных образованиях и других
-              показаниях, с сохранением голоса, дыхания и глотания.
+              Глотка/гортань: микрохирургия гортани, удаление доброкачественных
+              новообразований данной локализации, тонзиллэктомия,
+              увулопалатопластика.
+              <br />
+              Лечение ронхопатии (храпа) и СОАС.
+              <br />
+              Это больше, чем хирургия.
+              <br />
+              При данной патологии зачастую требуется комплексное лечение с
+              участием оториноларинголога, сомнолога, терапевта, стоматолога и
+              невролога.
+              <br />
+              Я владею разнообразными техниками хирургии храпа, но важно выбрать
+              нужную тактику и комбинировать её с современными
+              реабилитационными мероприятиями.
             </Card>
           </div>
         </Reveal>
@@ -989,51 +1572,27 @@ function FaqItem({ question, children }) {
 /* ==================== CONTACTS ==================== */
 
 function Contacts() {
-  const email = "example@email.com"; // сюда поставишь реальный email
-
   return (
     <section className="section" id="contacts">
       <div className="container">
         <Reveal>
-          <div className="grid grid--2">
-            <div>
-              <div className="section__header">
-                <span className="section__eyebrow">
-                  <FiMail /> Запись на приём
-                </span>
-                <h2>Контакты</h2>
-              </div>
-              <p className="section__subtitle">
-                Напишите короткое письмо: расскажите, что беспокоит, и предложите
-                удобное время для связи. Я отвечу и подберём время приёма.
-              </p>
-              <div className="contacts__item">
-                <span className="contacts__label">Email для записи</span>
-                <a href={`mailto:${email}`} className="contacts__value">
-                  {email}
-                </a>
-              </div>
-              <p className="contacts__note">
-                В письме можно приложить фото заключений и список препаратов,
-                которые вы принимаете. Полноценный диагноз ставится только на очном
-                приёме.
-              </p>
-            </div>
-            <div className="contacts__box">
-              <h3 className="contacts__title">
+          <div>
+            <div className="section__header">
+              <h2 className="contacts__main-heading">
                 <FiMapPin className="contacts__icon" />
                 Где проходит приём
-              </h3>
-              <p className="contacts__clinic">
-                ГАУЗ «Кузбасский клинический госпиталь для ветеранов войн», г.
-                Кемерово.
-              </p>
-              <p className="contacts__text">
-                Точный кабинет и время приёма уточняются при записи. Перед визитом
-                возьмите паспорт, полис, имеющиеся медицинские документы и список
-                принимаемых препаратов.
-              </p>
+              </h2>
             </div>
+            <p className="contacts__clinic">
+              1. Медицинская клиника «Медпарк», г. Кемерово, пр-т Шахтеров, 14А.
+              Тел. для записи: +7 (3842) 903-911, +7 (3842) 903-912.
+            </p>
+            <p className="contacts__text">
+              2. По полису ОМС (требуется направление из поликлиники): ГАУЗ
+              «Кузбасский клинический госпиталь для ветеранов войн им. Н.Н.
+              Бурдина», г. Кемерово, ул. 50 лет Октября, 10. Каждый четверг с
+              14:00 до 15:00 по предварительной записи, тел. +7 (3842) 582-670.
+            </p>
           </div>
         </Reveal>
       </div>
